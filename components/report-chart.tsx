@@ -31,21 +31,6 @@ const COLORS = {
   net: '#6366f1',
 };
 
-function PillLegend() {
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-      <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 bg-background/70">
-        <span className="h-2 w-2 rounded-full" style={{ background: COLORS.income }} />
-        Ingreso
-      </span>
-      <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 bg-background/70">
-        <span className="h-2 w-2 rounded-full" style={{ background: COLORS.expense }} />
-        Egresos
-      </span>
-    </div>
-  );
-}
-
 function ChartTooltip({
   active,
   payload,

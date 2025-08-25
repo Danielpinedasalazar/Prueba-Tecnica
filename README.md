@@ -20,7 +20,7 @@ This project is a financial reporting tool that processes transaction data and g
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Danielpinedasalazar/prueba_tecnica.git
+git clone https://github.com/Danielpinedasalazar/Prueba-Tecnica.git
 cd Prueba-Tecnica
 ```
 

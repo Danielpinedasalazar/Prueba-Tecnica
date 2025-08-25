@@ -21,7 +21,7 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          UserRole  @default(ADMIN) // <- todos nuevos ADMIN
+  role          UserRole  @default(ADMIN)
   banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?
@@ -82,7 +82,7 @@ model Verification {
   updatedAt DateTime @updatedAt
 
   identifier String
-  value      String // guarda el state serializado
+  value      String
   expiresAt  DateTime
 
   @@index([identifier])
