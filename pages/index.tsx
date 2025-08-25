@@ -71,11 +71,11 @@ export default function Home() {
             </Button>
             {!session?.user && (
               <Button asChild variant="ghost" size="sm" className="gap-1 cursor-pointer">
-                <a href="/auth/login">
+                <Link href="/auth/login">
                   <LogIn className="h-4 w-4" />
                   Iniciar sesión
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             )}
           </div>
