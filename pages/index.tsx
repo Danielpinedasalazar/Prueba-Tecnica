@@ -1,9 +1,9 @@
-// pages/index.tsx
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { authClient } from '@/lib/auth-client';
+import { getRole } from '@/types/session';
 import { ArrowRight, BarChart3, FileText, LogIn, ShieldCheck, Users2, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,8 +15,7 @@ const Tech = ({ t }: { t: string }) => (
 
 export default function Home() {
   const { data: session } = authClient.useSession();
-  const role = (session?.user as any)?.role ?? 'USER';
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = getRole(session) === 'ADMIN';
 
   return (
     <div className="space-y-10">
@@ -65,10 +64,10 @@ export default function Home() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="/api/docs" target="_blank" rel="noreferrer">
+              <Link href="/api/docs" target="_blank" rel="noreferrer">
                 <FileText className="mr-2 h-4 w-4" />
                 Ver API Docs
-              </a>
+              </Link>
             </Button>
             {!session?.user && (
               <Button asChild variant="ghost" size="sm" className="gap-1">
@@ -176,7 +175,7 @@ export default function Home() {
                 </Button>
               )}
               <Button asChild size="sm" variant="secondary">
-                <a href="/api/docs">API Docs</a>
+                <Link href="/api/docs">API Docs</Link>
               </Button>
             </div>
           </CardContent>
@@ -205,21 +204,21 @@ export default function Home() {
               </Link>
             )}
             {isAdmin && (
-              <a
+              <Link
                 href="/api/reportes/csv"
                 className="flex items-center justify-between rounded-lg border px-3 py-2 hover:bg-muted/40 transition-colors"
               >
                 <span>Descargar CSV de movimientos</span>
                 <ArrowRight className="h-4 w-4 opacity-70" />
-              </a>
+              </Link>
             )}
-            <a
+            <Link
               href="/api/docs"
               className="flex items-center justify-between rounded-lg border px-3 py-2 hover:bg-muted/40 transition-colors"
             >
               <span>Documentación de la API (Swagger)</span>
               <ArrowRight className="h-4 w-4 opacity-70" />
-            </a>
+            </Link>
           </CardContent>
         </Card>
       </section>

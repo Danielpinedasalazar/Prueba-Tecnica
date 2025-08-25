@@ -1,16 +1,28 @@
+// lib/rbac.ts
 import { auth } from '@/lib/auth';
-import type { GetServerSidePropsContext } from 'next';
+import type { GetServerSidePropsContext, GetServerSidePropsResult } from 'next';
 
-type Role = 'ADMIN' | 'USER';
+export type Role = 'ADMIN' | 'USER';
 
-export async function requireRole(ctx: GetServerSidePropsContext, roles: Role[]) {
-  const session = await auth.api.getSession({ headers: ctx.req.headers as any });
-  if (!session) {
-    return { redirect: { destination: '/auth/login', permanent: false } };
-  }
-  const role = (session.user as any).role as Role;
-  if (!roles.includes(role)) {
+export function canAccess(required: Role | Role[], userRole: Role): boolean {
+  const list = Array.isArray(required) ? required : [required];
+  return list.includes(userRole);
+}
+
+export async function requireRole<TProps = Record<string, unknown>>(
+  ctx: GetServerSidePropsContext,
+  required: Role | Role[]
+): Promise<GetServerSidePropsResult<TProps>> {
+  const headers = new Headers(ctx.req.headers as unknown as Record<string, string>);
+
+  const res = await auth.api.getSession({ headers });
+
+  const user = res?.user ?? null;
+  const role = (user as unknown as { role?: Role } | null)?.role ?? 'USER';
+
+  if (!canAccess(required, role)) {
     return { redirect: { destination: '/', permanent: false } };
   }
-  return { props: {} };
+
+  return { props: {} as TProps };
 }

@@ -1,46 +1,67 @@
-import { auth } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+// pages/api/movimientos/[id].ts
+import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/require-admin';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
 
-const prisma = new PrismaClient();
+const putSchema = z
+  .object({
+    concept: z.string().min(1).optional(),
+    amount: z.number().optional(),
+    date: z
+      .string()
+      .refine((v) => (v ? !Number.isNaN(Date.parse(v)) : true), 'fecha inválida')
+      .optional(),
+  })
+  .refine((v) => v.concept !== undefined || v.amount !== undefined || v.date !== undefined, {
+    message: 'Debe enviar al menos un campo a actualizar',
+  });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await auth.api.getSession({ headers: req.headers as any });
-  if (!session) return res.status(401).json({ error: 'Unauthenticated' });
+  const { isAdmin, session } = await requireAdmin(req);
+  if (!session) return res.status(401).json({ error: 'unauthorized' });
+  if (!isAdmin) return res.status(403).json({ error: 'forbidden' });
 
-  const role = (session.user as any).role as 'ADMIN' | 'USER';
-  if (role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
+  const id = req.query.id as string;
 
-  const { id } = req.query as { id: string };
+  if (req.method === 'PUT') {
+    try {
+      const parsed = putSchema.parse(
+        typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+      );
+      const data: { concept?: string; amount?: number; date?: Date } = {};
+      if (parsed.concept !== undefined) data.concept = parsed.concept;
+      if (parsed.amount !== undefined) data.amount = parsed.amount;
+      if (parsed.date !== undefined) data.date = new Date(parsed.date);
 
-  try {
-    if (req.method === 'PUT') {
-      const { concept, amount, date } = req.body as {
-        concept?: string;
-        amount?: number | string;
-        date?: string;
-      };
       const updated = await prisma.movement.update({
         where: { id },
-        data: {
-          ...(concept !== undefined ? { concept } : {}),
-          ...(amount !== undefined ? { amount: Number(amount) } : {}),
-          ...(date !== undefined ? { date: new Date(date) } : {}),
+        data,
+        select: {
+          id: true,
+          concept: true,
+          amount: true,
+          date: true,
+          user: { select: { name: true, email: true } },
         },
-        include: { user: { select: { name: true, email: true } } },
       });
-      return res.json(updated);
+      return res.status(200).json(updated);
+    } catch (e) {
+      if (e instanceof z.ZodError)
+        return res.status(400).json({ error: 'validation_error', details: e.flatten() });
+      return res.status(500).json({ error: 'internal_error' });
     }
+  }
 
-    if (req.method === 'DELETE') {
+  if (req.method === 'DELETE') {
+    try {
       await prisma.movement.delete({ where: { id } });
       return res.status(204).end();
+    } catch {
+      return res.status(500).json({ error: 'internal_error' });
     }
-
-    res.setHeader('Allow', 'PUT,DELETE');
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Internal Error' });
   }
+
+  res.setHeader('Allow', 'PUT, DELETE');
+  return res.status(405).json({ error: 'method_not_allowed' });
 }

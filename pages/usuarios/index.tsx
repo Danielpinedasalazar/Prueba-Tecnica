@@ -4,7 +4,6 @@ import { authClient } from '@/lib/auth-client';
 import { requireRole } from '@/lib/rbac';
 import type { GetServerSideProps } from 'next';
 import { useEffect, useMemo, useState } from 'react';
-import { z } from 'zod';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ReloadIcon } from '@radix-ui/react-icons';
-import { Check, ChevronDown, Edit2, Shield, UserRoundCog } from 'lucide-react';
+import { Check, Edit2, Shield, UserRoundCog } from 'lucide-react';
 
 import {
   Select,
@@ -60,6 +59,16 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(false);
   const [term, setTerm] = useState('');
 
+  const filtered = useMemo(() => {
+    const q = term.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      const name = (u.name ?? '').toLowerCase();
+      const phone = (u.phone ?? '').toLowerCase();
+      return u.email.toLowerCase().includes(q) || name.includes(q) || phone.includes(q);
+    });
+  }, [users, term]);
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<{ name: string; role: Role; phone: string }>({
@@ -68,17 +77,6 @@ export default function UsuariosPage() {
     phone: '',
   });
   const [saving, setSaving] = useState(false);
-
-  const putSchema = z
-    .object({
-      id: z.string().min(1, 'id requerido'),
-      name: z.string().trim().optional(),
-      role: z.enum(['USER', 'ADMIN']).optional(),
-      phone: z.string().trim().optional().nullable(),
-    })
-    .refine((v) => v.name !== undefined || v.role !== undefined || v.phone !== undefined, {
-      message: 'Debe enviar al menos un campo a actualizar: name, role o phone',
-    });
 
   async function load() {
     setLoading(true);
@@ -154,16 +152,6 @@ export default function UsuariosPage() {
   }
 
   if (!session) return <p className="p-6">Inicia sesión primero</p>;
-
-  const filtered = useMemo(() => {
-    const q = term.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => {
-      const name = (u.name ?? '').toLowerCase();
-      const phone = (u.phone ?? '').toLowerCase();
-      return u.email.toLowerCase().includes(q) || name.includes(q) || phone.includes(q);
-    });
-  }, [users, term]);
 
   return (
     <div className="space-y-6">
@@ -303,20 +291,6 @@ export default function UsuariosPage() {
 
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-2">
-                        <Select
-                          defaultValue={u.role}
-                          onValueChange={(val) => updateRole(u.id, val as Role)}
-                        >
-                          <SelectTrigger className="w-[140px] justify-between">
-                            <SelectValue placeholder="Rol" />
-                            <ChevronDown className="h-4 w-4 opacity-70" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="USER">USER</SelectItem>
-                            <SelectItem value="ADMIN">ADMIN</SelectItem>
-                          </SelectContent>
-                        </Select>
-
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>

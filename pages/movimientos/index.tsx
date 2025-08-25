@@ -1,6 +1,7 @@
 'use client';
 
 import { authClient } from '@/lib/auth-client';
+import { getRole } from '@/types/session';
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -52,7 +53,7 @@ export default function MovimientosPage() {
   const [form, setForm] = useState({ concept: '', amount: '', date: '' });
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME'); // <-- selector
 
-  const isAdmin = useMemo(() => (session?.user as any)?.role === 'ADMIN', [session]);
+  const isAdmin = useMemo(() => getRole(session) === 'ADMIN', [session]);
 
   async function load() {
     setLoading(true);

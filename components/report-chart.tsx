@@ -20,6 +20,11 @@ type Props = {
   title?: string;
 };
 
+type PayloadItem = {
+  value: number;
+  dataKey: 'income' | 'expense' | string;
+};
+
 const nf = (currency: string) =>
   new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 });
 
@@ -38,7 +43,7 @@ function ChartTooltip({
   currency,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: PayloadItem[];
   label?: string;
   currency: string;
 }) {

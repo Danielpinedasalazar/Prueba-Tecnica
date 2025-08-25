@@ -1,53 +1,78 @@
+// pages/api/movimientos/index.ts
 import { auth } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/require-admin';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { z } from 'zod';
 
-const prisma = new PrismaClient();
+const postSchema = z.object({
+  concept: z.string().min(1, 'concept requerido'),
+  amount: z.number(),
+  date: z
+    .string()
+    .min(1, 'date requerido')
+    .refine((v) => !Number.isNaN(Date.parse(v)), 'fecha inválida'),
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await auth.api.getSession({ headers: req.headers as any });
-  if (!session) return res.status(401).json({ error: 'Unauthenticated' });
+  const sessionInfo = await auth.api.getSession({
+    headers: new Headers(req.headers as Record<string, string>),
+  });
+  const session = sessionInfo?.session ?? null;
 
-  const userId = session.user.id as string;
-  const role = (session.user as any).role as 'ADMIN' | 'USER';
-
-  try {
-    if (req.method === 'GET') {
-      const data = await prisma.movement.findMany({
+  if (req.method === 'GET') {
+    if (!session) return res.status(401).json({ error: 'unauthorized' });
+    try {
+      const rows = await prisma.movement.findMany({
         orderBy: { date: 'desc' },
-        include: { user: { select: { name: true, email: true } } },
+        select: {
+          id: true,
+          concept: true,
+          amount: true,
+          date: true,
+          user: { select: { name: true, email: true } },
+        },
       });
-      return res.json(data);
+      return res.status(200).json(rows);
+    } catch {
+      return res.status(500).json({ error: 'internal_error' });
     }
+  }
 
-    if (req.method === 'POST') {
-      if (role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
+  if (req.method === 'POST') {
+    // Solo ADMIN crea
+    const { isAdmin, session: s } = await requireAdmin(req);
+    if (!s) return res.status(401).json({ error: 'unauthorized' });
+    if (!isAdmin) return res.status(403).json({ error: 'forbidden' });
 
-      const { concept, amount, date } = req.body as {
-        concept: string;
-        amount: number;
-        date: string;
-      };
-      if (!concept || !Number.isFinite(Number(amount)) || !date) {
-        return res.status(400).json({ error: 'Invalid payload' });
-      }
-
+    try {
+      const parsed = postSchema.parse(
+        typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+      );
       const created = await prisma.movement.create({
         data: {
-          concept,
-          amount: Number(amount),
-          date: new Date(date),
-          userId,
+          concept: parsed.concept,
+          amount: parsed.amount,
+          date: new Date(parsed.date),
+          userId: sessionInfo!.user.id,
         },
-        include: { user: { select: { name: true, email: true } } },
+        select: {
+          id: true,
+          concept: true,
+          amount: true,
+          date: true,
+          user: { select: { name: true, email: true } },
+        },
       });
       return res.status(201).json(created);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ error: 'validation_error', details: e.flatten() });
+      }
+      return res.status(500).json({ error: 'internal_error' });
     }
-
-    res.setHeader('Allow', 'GET,POST');
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Internal Error' });
   }
+
+  res.setHeader('Allow', 'GET, POST');
+  return res.status(405).json({ error: 'method_not_allowed' });
 }

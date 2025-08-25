@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { BarChart2, Download, TrendingDown, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 
 const ReportChart = dynamic(() => import('@/components/report-chart'), {
   ssr: false,
@@ -89,10 +90,10 @@ export default function ReportesPage() {
         </TooltipProvider>
 
         <Button asChild>
-          <a href="/api/reportes/csv">
+          <Link href="/api/reportes/csv">
             <Download className="mr-2 h-4 w-4" />
             Descargar CSV
-          </a>
+          </Link>
         </Button>
       </div>
 
@@ -179,7 +180,7 @@ export default function ReportesPage() {
                   Refrescar
                 </Button>
                 <Button asChild size="sm">
-                  <a href="/movimientos">Agregar movimientos</a>
+                  <Link href="/movimientos">Agregar movimientos</Link>
                 </Button>
               </div>
             </div>

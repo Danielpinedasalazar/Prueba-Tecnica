@@ -1,4 +1,3 @@
-// pages/me.tsx
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -7,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { authClient } from '@/lib/auth-client';
+import { getRole } from '@/types/session';
 
 export default function Me() {
   const { data: session, isPending } = authClient.useSession();
+  const role = getRole(session);
 
   if (isPending) {
     return (
@@ -56,7 +57,6 @@ export default function Me() {
   }
 
   const user = session.user;
-  const role = (user as any)?.role ?? 'USER';
   const initials = (user.name ?? user.email ?? 'U').slice(0, 2).toUpperCase();
 
   const copy = async (text: string) => {
