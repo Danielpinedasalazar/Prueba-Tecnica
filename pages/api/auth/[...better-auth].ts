@@ -4,25 +4,23 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 export const config = { api: { bodyParser: false } };
 
 function toWebHeaders(req: NextApiRequest): Headers {
-  const headers = new Headers();
+  const h = new Headers();
   for (const [k, v] of Object.entries(req.headers)) {
-    if (typeof v === 'string') headers.append(k, v);
-    else if (Array.isArray(v)) v.forEach((vv) => vv && headers.append(k, vv));
+    if (typeof v === 'string') h.append(k, v);
+    else if (Array.isArray(v)) v.forEach((vv) => vv && h.append(k, vv));
   }
-  return headers;
+  return h;
 }
 
-// Devuelve ArrayBuffer para que cumpla BodyInit
-async function readBodyAsArrayBuffer(req: NextApiRequest): Promise<ArrayBuffer | undefined> {
+async function readBody(req: NextApiRequest): Promise<ArrayBuffer | undefined> {
   if (req.method === 'GET' || req.method === 'HEAD') return undefined;
   const chunks: Buffer[] = [];
   await new Promise<void>((resolve, reject) => {
     req.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
-    req.on('end', () => resolve());
+    req.on('end', resolve);
     req.on('error', reject);
   });
   const buf = Buffer.concat(chunks);
-  // Recorta el ArrayBuffer al tamaño exacto
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 }
 
@@ -31,16 +29,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const host = req.headers.host ?? 'localhost:3000';
   const url = new URL(req.url ?? '/', `${proto}://${host}`);
 
-  const webRequest = new Request(url, {
+  const webReq = new Request(url, {
     method: req.method,
     headers: toWebHeaders(req),
-    body: await readBodyAsArrayBuffer(req), // <- ahora es ArrayBuffer (BodyInit)
+    body: await readBody(req),
   });
 
-  const response = await auth.handler(webRequest);
+  const response = await auth.handler(webReq);
 
   res.status(response.status);
-  response.headers.forEach((value, key) => res.setHeader(key, value));
+  response.headers.forEach((v, k) => res.setHeader(k, v));
   const body = Buffer.from(await response.arrayBuffer());
   res.end(body);
 }
