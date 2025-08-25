@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "prisma:generate": "prisma generate",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "vitest"
+    "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.18",
