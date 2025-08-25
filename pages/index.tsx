@@ -70,24 +70,12 @@ export default function Home() {
               </Link>
             </Button>
             {!session?.user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1"
-                type="button"
-                onClick={async () => {
-                  try {
-                    await authClient.signIn.social({
-                      provider: 'github',
-                      callbackURL: '/',
-                      errorCallbackURL: '/auth/error',
-                    });
-                  } catch {}
-                }}
-              >
-                <LogIn className="h-4 w-4" />
-                Iniciar sesión
-                <ArrowRight className="h-4 w-4" />
+              <Button asChild variant="ghost" size="sm" className="gap-1 cursor-pointer">
+                <a href="/auth/login">
+                  <LogIn className="h-4 w-4" />
+                  Iniciar sesión
+                  <ArrowRight className="h-4 w-4" />
+                </a>
               </Button>
             )}
           </div>

@@ -1,6 +1,8 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { authClient } from '@/lib/auth-client';
+import Link from 'next/link';
 
 export default function LoginPage() {
   return (
@@ -11,17 +13,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
-            className="w-full"
-            onClick={() =>
-              authClient.signIn.social({
-                provider: 'github',
-                callbackURL: '/',
-                errorCallbackURL: '/auth/error',
-              })
-            }
+            asChild
+            className="w-full cursor-pointer hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Entrar con GitHub
+            <Link href="/api/auth/github?callbackURL=/">Entrar con GitHub</Link>
           </Button>
+
           <p className="text-xs text-muted-foreground">
             Usamos Better Auth con GitHub como proveedor.
           </p>
