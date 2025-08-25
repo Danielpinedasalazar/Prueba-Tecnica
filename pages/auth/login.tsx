@@ -2,15 +2,22 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { signIn } from '@/lib/auth-client';
 import { useState } from 'react';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
-  const goGithub = async () => {
+  const handleGithub = async () => {
     try {
       setLoading(true);
-      window.location.assign('/api/auth/sign-in/github?callbackURL=/');
+      await signIn.social({
+        provider: 'github',
+        callbackURL: '/', // a dónde volver tras login OK
+        errorCallbackURL: '/auth/error',
+      });
+      // Algunas versiones ya redirigen solas; si no, forzará redirección con la URL que devuelve.
+      // No hace falta escribir window.location.assign a mano.
     } finally {
       setLoading(false);
     }
@@ -25,7 +32,7 @@ export default function LoginPage() {
         <CardContent className="space-y-3">
           <Button
             type="button"
-            onClick={goGithub}
+            onClick={handleGithub}
             disabled={loading}
             className="w-full cursor-pointer hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
