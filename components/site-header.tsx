@@ -30,8 +30,7 @@ function Brand() {
     <Link href="/" className="group inline-flex items-center gap-2">
       <span className="inline-block h-6 w-6 rounded-md bg-gradient-to-tr from-primary/90 via-primary/60 to-primary/30 shadow-[0_0_24px_-6px] shadow-primary/60" />
       <span className="font-semibold tracking-tight">
-        <span className="text-foreground">Prevalentware</span>
-        <span className="text-primary group-hover:opacity-90 transition-opacity">/Finanzas</span>
+        <span className="text-primary group-hover:opacity-90 transition-opacity">Finanzas</span>
       </span>
     </Link>
   );
@@ -84,9 +83,7 @@ export function SiteHeader() {
           </Link>
         </nav>
 
-        {/* DERECHA: perfil / auth */}
         <div className="flex items-center gap-2">
-          {/* Menú móvil */}
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
@@ -134,17 +131,10 @@ export function SiteHeader() {
               <Separator />
               <div className="p-4">
                 {!session ? (
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      authClient.signIn.social({
-                        provider: 'github',
-                        callbackURL: '/',
-                        errorCallbackURL: '/auth/error',
-                      })
-                    }
-                  >
-                    Entrar
+                  <Button asChild size="sm">
+                    <a href="/api/auth/signin/github?callbackURL=/&errorCallbackURL=/auth/error">
+                      Entrar
+                    </a>
                   </Button>
                 ) : (
                   <div className="flex items-center justify-between">
