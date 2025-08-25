@@ -132,9 +132,9 @@ export function SiteHeader() {
               <div className="p-4">
                 {!session ? (
                   <Button asChild size="sm">
-                    <a href="/api/auth/signin/github?callbackURL=/&errorCallbackURL=/auth/error">
+                    <Link href="/api/auth/signin/github?callbackURL=/&errorCallbackURL=/auth/error">
                       Entrar
-                    </a>
+                    </Link>
                   </Button>
                 ) : (
                   <div className="flex items-center justify-between">
