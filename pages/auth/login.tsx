@@ -16,7 +16,7 @@ export default function LoginPage() {
             asChild
             className="w-full cursor-pointer hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Link href="/api/auth/github?callbackURL=/">Entrar con GitHub</Link>
+            <Link href="/api/auth/sign-in/github?callbackURL=/">Entrar con GitHub</Link>
           </Button>
 
           <p className="text-xs text-muted-foreground">
