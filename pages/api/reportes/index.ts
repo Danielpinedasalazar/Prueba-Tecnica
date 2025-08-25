@@ -18,7 +18,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Nota: ingresos = montos >= 0; egresos = montos < 0
   const movements = await prisma.movement.findMany({
     orderBy: { date: 'asc' },
     select: { amount: true, date: true },
@@ -26,7 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const balance = movements.reduce((acc, m) => acc + m.amount, 0);
 
-  // agrupar por mes (YYYY-MM)
   const map = new Map<string, Serie>();
   for (const m of movements) {
     const d = new Date(m.date);

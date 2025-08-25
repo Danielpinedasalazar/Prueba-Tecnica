@@ -1,17 +1,23 @@
+'use client';
+
 import { authClient } from '@/lib/auth-client';
+import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -20,6 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import { Pencil, Plus, Trash2, Wallet } from 'lucide-react';
 
 type Movement = {
   id: string;
@@ -28,6 +37,9 @@ type Movement = {
   date: string;
   user: { name: string | null; email: string };
 };
+
+const fmtMoney = (v: number, currency = 'USD') =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(v || 0));
 
 export default function MovimientosPage() {
   const { data: session, isPending } = authClient.useSession();
@@ -38,6 +50,7 @@ export default function MovimientosPage() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ concept: '', amount: '', date: '' });
+  const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME'); // <-- selector
 
   const isAdmin = useMemo(() => (session?.user as any)?.role === 'ADMIN', [session]);
 
@@ -62,11 +75,11 @@ export default function MovimientosPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = {
-      concept: form.concept,
-      amount: Number(form.amount),
-      date: form.date,
-    };
+    let amt = Number(form.amount);
+    if (!Number.isFinite(amt)) amt = 0;
+    amt = type === 'EXPENSE' ? -Math.abs(amt) : Math.abs(amt);
+
+    const payload = { concept: form.concept, amount: amt, date: form.date };
     const url = editId ? `/api/movimientos/${editId}` : '/api/movimientos';
     const method = editId ? 'PUT' : 'POST';
 
@@ -90,6 +103,7 @@ export default function MovimientosPage() {
     setOpen(false);
     setEditId(null);
     setForm({ concept: '', amount: '', date: '' });
+    setType('INCOME');
   }
 
   async function onDelete(id: string) {
@@ -100,6 +114,13 @@ export default function MovimientosPage() {
     }
   }
 
+  // Métricas derivadas (solo UI)
+  const { income, expense, balance } = useMemo(() => {
+    const inc = data.reduce((s, m) => (m.amount > 0 ? s + m.amount : s), 0);
+    const exp = data.reduce((s, m) => (m.amount < 0 ? s + Math.abs(m.amount) : s), 0);
+    return { income: inc, expense: exp, balance: inc - exp };
+  }, [data]);
+
   if (isPending) return <p className="p-6">Cargando…</p>;
   if (!session) return <p className="p-6">Inicia sesión primero</p>;
 
@@ -107,129 +128,323 @@ export default function MovimientosPage() {
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="page-title">Movimientos</h1>
-        <p className="page-subtitle">Registra ingresos (monto ≥ 0) y egresos (monto &lt; 0).</p>
+        <p className="page-subtitle">Registra ingresos y egresos con un selector de tipo.</p>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Listado</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={load} disabled={loading}>
-              {loading ? 'Actualizando…' : 'Refrescar'}
-            </Button>
-            {isAdmin && (
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button>Nuevo</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editId ? 'Editar movimiento' : 'Nuevo movimiento'}</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={onSubmit} className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="concept">Concepto</Label>
-                      <Input
-                        id="concept"
-                        value={form.concept}
-                        onChange={(e) => setForm((f) => ({ ...f, concept: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="amount">Monto</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        value={form.amount}
-                        onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="date">Fecha</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={form.date}
-                        onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => {
-                          setOpen(false);
-                          setEditId(null);
-                          setForm({ concept: '', amount: '', date: '' });
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit">Guardar</Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Concepto</TableHead>
-                <TableHead>Monto</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Usuario</TableHead>
-                {isAdmin && <TableHead className="text-right">Acciones</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isAdmin ? 5 : 4} className="text-center">
-                    No hay movimientos aún
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>{m.concept}</TableCell>
-                    <TableCell className={m.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                      {m.amount >= 0 ? '+' : ''}${m.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{new Date(m.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{m.user?.name ?? m.user?.email}</TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right space-x-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="bg-card/70">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Ingresos</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-end justify-between">
+            <div className="text-2xl font-semibold text-emerald-500">{fmtMoney(income)}</div>
+            <Badge variant="secondary" className="uppercase">
+              Total
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/70">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Egresos</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-end justify-between">
+            <div className="text-2xl font-semibold text-red-500">-{fmtMoney(expense)}</div>
+            <Badge variant="secondary" className="uppercase">
+              Total
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/70">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Saldo</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-end justify-between">
+            <div
+              className={[
+                'text-2xl font-semibold',
+                balance >= 0 ? 'text-emerald-500' : 'text-red-500',
+              ].join(' ')}
+            >
+              {fmtMoney(balance)}
+            </div>
+            <Wallet className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-card/70">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-base">Listado</CardTitle>
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" onClick={load} disabled={loading}>
+                      {loading ? (
+                        <>
+                          <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                          Actualizando…
+                        </>
+                      ) : (
+                        <>
+                          <ReloadIcon className="mr-2 h-4 w-4" />
+                          Refrescar
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Vuelve a consultar los datos</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {isAdmin && (
+                <Dialog
+                  open={open}
+                  onOpenChange={(v) => {
+                    setOpen(v);
+                    if (!v) {
+                      setEditId(null);
+                      setForm({ concept: '', amount: '', date: '' });
+                      setType('INCOME');
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nuevo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editId ? 'Editar movimiento' : 'Nuevo movimiento'}</DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={onSubmit} className="grid gap-4 pt-2">
+                      {/* Selector de tipo */}
+                      <div className="grid gap-2">
+                        <Label>Tipo</Label>
+                        <div className="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={type === 'INCOME' ? 'default' : 'ghost'}
+                            onClick={() => setType('INCOME')}
+                          >
+                            Ingreso
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={type === 'EXPENSE' ? 'destructive' : 'ghost'}
+                            onClick={() => setType('EXPENSE')}
+                          >
+                            Egreso
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          El monto se firmará automáticamente según el tipo.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="concept">Concepto</Label>
+                        <Input
+                          id="concept"
+                          value={form.concept}
+                          onChange={(e) => setForm((f) => ({ ...f, concept: e.target.value }))}
+                          placeholder="Ej. Nómina, Compra insumos…"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="amount">Monto</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          inputMode="decimal"
+                          value={form.amount}
+                          onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                          placeholder={
+                            type === 'EXPENSE'
+                              ? 'Ej. 1250.00 (se registrará como egreso)'
+                              : 'Ej. 1250.00'
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="date">Fecha</Label>
+                        <Input
+                          id="date"
+                          type="date"
+                          value={form.date}
+                          onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                          required
+                        />
+                      </div>
+
+                      <DialogFooter className="gap-2">
                         <Button
-                          size="sm"
+                          type="button"
                           variant="secondary"
                           onClick={() => {
-                            setEditId(m.id);
-                            setForm({
-                              concept: m.concept,
-                              amount: String(m.amount),
-                              date: new Date(m.date).toISOString().slice(0, 10),
-                            });
-                            setOpen(true);
+                            setOpen(false);
+                            setEditId(null);
+                            setForm({ concept: '', amount: '', date: '' });
+                            setType('INCOME');
                           }}
                         >
-                          Editar
+                          Cancelar
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(m.id)}>
-                          Eliminar
-                        </Button>
+                        <Button type="submit">Guardar</Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="rounded-lg border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Concepto</TableHead>
+                  <TableHead className="min-w-[140px]">Monto</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Usuario</TableHead>
+                  {isAdmin && <TableHead className="text-right">Acciones</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading &&
+                  data.length === 0 &&
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={`sk-${i}`}>
+                      <TableCell>
+                        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <div className="ml-auto h-8 w-28 animate-pulse rounded bg-muted" />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+
+                {!loading && data.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 5 : 4} className="py-10 text-center">
+                      <div className="mx-auto max-w-sm space-y-2">
+                        <p className="text-sm text-muted-foreground">No hay movimientos aún.</p>
+                        {isAdmin && (
+                          <Button onClick={() => setOpen(true)} className="mt-1">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Registrar el primero
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {data.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.concept}</TableCell>
+
+                    <TableCell>
+                      <span
+                        className={[
+                          'rounded px-2 py-1 text-sm',
+                          m.amount >= 0
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-red-500/10 text-red-500',
+                        ].join(' ')}
+                      >
+                        {m.amount >= 0 ? '+' : ''}
+                        {fmtMoney(m.amount)}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="whitespace-nowrap">
+                      {new Date(m.date).toLocaleDateString()}
+                    </TableCell>
+
+                    <TableCell className="max-w-[220px] truncate">
+                      {m.user?.name ?? m.user?.email}
+                    </TableCell>
+
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setEditId(m.id);
+                                    setType(m.amount >= 0 ? 'INCOME' : 'EXPENSE');
+                                    setForm({
+                                      concept: m.concept,
+                                      amount: String(Math.abs(m.amount)),
+                                      date: new Date(m.date).toISOString().slice(0, 10),
+                                    });
+                                    setOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Editar movimiento</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => onDelete(m.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Eliminar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Eliminar movimiento</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <Separator className="my-4" />
+          <p className="text-xs text-muted-foreground">
+            Tip: usa el selector para elegir el tipo. El sistema aplicará el signo automáticamente.
+          </p>
         </CardContent>
       </Card>
     </div>

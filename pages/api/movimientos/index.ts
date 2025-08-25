@@ -13,7 +13,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === 'GET') {
-      // Lista todos los movimientos (requisito: visibles para ambos roles)
       const data = await prisma.movement.findMany({
         orderBy: { date: 'desc' },
         include: { user: { select: { name: true, email: true } } },

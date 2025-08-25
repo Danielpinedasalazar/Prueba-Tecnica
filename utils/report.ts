@@ -1,16 +1,33 @@
-export type MovementLike = { amount: number; date: string | Date };
+type Item = { amount: number; date: string };
 
-export function computeReport(movements: MovementLike[]) {
-  const balance = movements.reduce((a, m) => a + Number(m.amount), 0);
+function monthKey(d: string): string {
+  if (/^\d{4}-\d{2}-/.test(d)) return d.slice(0, 7);
+  const dd = new Date(d);
+  const y = dd.getUTCFullYear();
+  const m = String(dd.getUTCMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+export function computeReport(items: Item[]) {
+  let balance = 0;
   const map = new Map<string, { month: string; income: number; expense: number; net: number }>();
-  for (const m of movements) {
-    const d = new Date(m.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const entry = map.get(key) || { month: key, income: 0, expense: 0, net: 0 };
-    if (m.amount >= 0) entry.income += m.amount;
-    else entry.expense += Math.abs(m.amount);
-    entry.net = entry.income - entry.expense;
-    map.set(key, entry);
+
+  for (const it of items) {
+    const amt = Number(it.amount) || 0;
+    balance += amt;
+
+    const key = monthKey(it.date);
+    if (!map.has(key)) {
+      map.set(key, { month: key, income: 0, expense: 0, net: 0 });
+    }
+    const acc = map.get(key)!;
+
+    if (amt >= 0) acc.income += amt;
+    else acc.expense += Math.abs(amt);
+
+    acc.net = acc.income - acc.expense;
   }
-  return { balance, series: Array.from(map.values()) };
+
+  const series = Array.from(map.values()).sort((a, b) => (a.month < b.month ? -1 : 1));
+  return { balance, series };
 }

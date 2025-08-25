@@ -1,28 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Financial Reporting Tool
 
-## Getting Started
+## Overview
 
-First, run the development server:
+This project is a financial reporting tool that processes transaction data and generates financial reports. It can calculate balances and create monthly series data for income, expenses, and net values from financial transactions.
+
+## Features
+
+- Process transaction data with amounts and dates
+- Calculate total balance across all transactions
+- Generate monthly series reports including:
+  - Income totals per month
+  - Expense totals per month
+  - Net balance per month
+- TypeScript implementation with strong typing
+- Comprehensive test coverage
+
+## Installation
+
+1. Clone the repository:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/Danielpinedasalazar/prueba_tecnica.git
+cd Prueba-Tecnica
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+# or
+yarn install
+# or
+bun install
+```
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## Usage
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+### Basic Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```typescript
+import { computeReport } from './utils/report';
+
+// Sample transaction data
+const transactions = [
+  { amount: 1000, date: '2023-01-15' },
+  { amount: -250, date: '2023-01-20' },
+  { amount: 300, date: '2023-02-05' },
+];
+
+// Generate report
+const report = computeReport(transactions);
+
+console.log('Total Balance:', report.balance);
+console.log('Monthly Series:', report.series);
+```
+
+### Report Structure
+
+The `computeReport` function returns an object with the following structure:
+
+```typescript
+{
+  balance: number; // Total balance across all transactions
+  series: Array<{
+    month: string; // Format: 'YYYY-MM'
+    income: number; // Total positive amounts for the month
+    expense: number; // Total negative amounts for the month (as positive value)
+    net: number; // Income minus expense for the month
+  }>;
+}
+```
+
+## Project Structure
+
+```
+.
+├── public/                  # Static files
+│   ├── assets/              # Asset files (images, icons, etc.)
+│   └── ...
+├── src/
+│   ├── components/          # React components
+│   │   ├── common/          # Commonly used components
+│   │   └── layout/          # Layout components
+│   ├── pages/               # Next.js pages
+│   │   ├── api/             # API routes
+│   │   └── _app.tsx         # Custom App component
+│   ├── styles/              # Global styles
+│   ├── types/               # TypeScript type definitions
+│   ├── utils/               # Utility functions
+│   └── ...
+├── .env                      # Environment variables
+├── .gitignore                # Git ignore file
+├── next.config.js           # Next.js configuration
+├── package.json             # Package configuration
+└── tsconfig.json            # TypeScript configuration
+```
 
 ## Learn More
 

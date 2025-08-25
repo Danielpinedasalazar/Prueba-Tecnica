@@ -1,4 +1,3 @@
-// src/lib/auth.ts
 import { PrismaClient } from '@prisma/client';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -18,14 +17,12 @@ export const auth = betterAuth({
     },
   },
 
-  // 👇 Esto hace que el campo role exista en DB (ya lo tenemos)
-  // y que además se incluya en session.user
   user: {
     additionalFields: {
       role: {
         type: 'string',
         defaultValue: 'ADMIN',
-        input: false, // el cliente no puede enviar este campo
+        input: false,
       },
     },
   },
